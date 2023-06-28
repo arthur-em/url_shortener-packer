@@ -23,21 +23,20 @@
         comment: Emmanuel Admin User
         group: admin
 
-    # - name: Deploy Flask App
-    #   hosts: all
-    #   become: yes
-    #   gather_facts: false
-    #   # become_user: emmanuel
-    #   tasks:
     - name: Create home folder for Flask App
       file:
         path: /home/emmanuel/flask_app
         state: directory
+        owner: emmanuel
+        group: admin
+        mode: "750"
 
     - name: Unarchive Flask App from local machine
       unarchive:
-        src: /Users/emmanuel/Python/Flask/url_shortener_archive2.tar.gz
+        src: url_shortener_archive2.tar.gz
         dest: /home/emmanuel/flask_app
+      # become: yes
+      # become_user: emmanuel
 
     - name: Install virtualenv module
       pip:
@@ -58,9 +57,6 @@
     - name: Install nginx
       apt:
         pkg: nginx
-      become: yes
-      become_user: root
-      become_method: sudo
 
     - name: allow SSH and Nginx access to ports using ufw (uncomplicated firewall)
       ufw:
@@ -69,61 +65,40 @@
       loop:
         - OpenSSH
         - Nginx Full
-      become: true
-      become_user: root
-      become_method: sudo
 
     - name: enable UFW
       ufw:
         state: reloaded
-      become: true
-      become_user: root
-      become_method: sudo
 
     - name: Copy over nginx server block configuration from local machine to remote server
       copy:
-        src: /Users/emmanuel/Python/Flask/url_shortener_nginx_config/url_shortener
+        src: url_shortener_nginx
         dest: /etc/nginx/sites-available/url_shortener
         owner: root
         group: root
         mode: "0777"
-      become: true
-      become_user: root
-      become_method: sudo
 
     - name: Create a symlink between sites-available and site-enabled directories
       file:
         src: /etc/nginx/sites-available/url_shortener
         dest: /etc/nginx/sites-enabled/url_shortener
         state: link
-      become: true
-      become_user: root
-      become_method: sudo
 
     - name: remove default website from nginx
       file: path=/etc/nginx/sites-enabled/default state=absent
-      become: true
-      become_user: root
-      become_method: sudo
 
     - name: Start nginx
       systemd:
         name: nginx
         state: restarted
-      become: true
-      become_user: root
-      become_method: sudo
 
     - name: Copy systemd service file with owner and permissions to server
       copy:
-        src: ~/Python/Flask/url_shortener_gunicorn/url_shortener.service
+        src: url_shortener.service
         dest: /etc/systemd/system/
         owner: root
         group: root
-        mode: "0777"
-      become: true
-      become_user: root
-      become_method: sudo
+        mode: "777"
 
     - name: Start gunicorn service
       systemd:
@@ -131,14 +106,3 @@
         state: restarted
         daemon_reload: true
         enabled: true
-      become: true
-      become_user: root
-      become_method: sudo
-
-    # - name: Enable gunicorn service
-    #   systemd:
-    #     name: url_shortener.service
-    #     enabled: true
-    #   become: true
-    #   become_user: root
-    #   become_method: sudo
